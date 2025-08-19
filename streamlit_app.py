@@ -1,9 +1,21 @@
 import json
+import asyncio
 import streamlit as st
 from google import genai
 from google.genai import types
 from PIL import Image
+from pydantic import BaseModel
 from prompts import prompt_image, prompt_pdf
+
+class ReceiptData(BaseModel):
+    rnc: int
+    ncf: str
+    date: str
+    subtotal: float
+    itbis: float
+    isc: float
+    other_taxes: float
+    tips: float
 
 def main():
 
@@ -29,14 +41,24 @@ def main():
     responses_list = []
 
     if uploaded_files and generate:
-        for uploaded_file in uploaded_files:
+
+        progress_bar = st.progress(0, text="Procesando archivos...")
+        total_files = len(uploaded_files)
+        for idx, uploaded_file in enumerate(uploaded_files):
             file_type = uploaded_file.type
-            st.write(f"Procesando: {uploaded_file.name}")
+            progress_bar.progress(
+                idx / total_files,
+                text=f"Procesando: {uploaded_file.name} ({idx+1}/{total_files})"
+            )
             if file_type.startswith("image"):
                 image = Image.open(uploaded_file)
                 response = client.models.generate_content(
                     model="gemini-2.5-flash-lite",
-                    contents=[image, prompt_image]
+                    contents=[image, prompt_image],
+                    config={
+                        "response_mime_type": "application/json",
+                        "response_schema": list[ReceiptData],
+                    },
                 )
                 try:
                     # Assuming the response is a JSON string
@@ -49,7 +71,11 @@ def main():
                 pdf_content = types.FileData(data=pdf_bytes, mime_type="application/pdf")
                 response = client.models.generate_content(
                     model="gemini-2.5-flash-lite",
-                    contents=[pdf_content, prompt_pdf]
+                    contents=[pdf_content, prompt_pdf],
+                    config={
+                        "response_mime_type": "application/json",
+                        "response_schema": list[ReceiptData],
+                    },
                 )
                 try:
                     # Assuming the response is a JSON string
@@ -59,6 +85,8 @@ def main():
                     st.warning(f"Could not decode JSON from PDF response for {uploaded_file.name}")
             else:
                 st.warning(f"Tipo de archivo no soportado: {uploaded_file.name}")
+        
+        progress_bar.progress(1.0, text="Procesamiento completado.")
 
         # Check if there are any responses to display
         if responses_list:
