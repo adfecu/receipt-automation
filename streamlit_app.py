@@ -1,53 +1,70 @@
+import json
 import streamlit as st
-from openai import OpenAI
+from google import genai
+from google.genai import types
+from PIL import Image
+from prompts import prompt_image, prompt_pdf
 
-# Show title and description.
-st.title("📄 Document question answering")
-st.write(
-    "Upload a document below and ask a question about it – GPT will answer! "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-)
+def main():
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-else:
+    # Show title and description.
+    st.title("📄 606 automático")
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+    # Initialize the GenAI client.
+    client = genai.Client()
 
-    # Let the user upload a file via `st.file_uploader`.
-    uploaded_file = st.file_uploader(
-        "Upload a document (.txt or .md)", type=("txt", "md")
+    # Load an image and generate content.
+    uploaded_files = st.file_uploader(
+        label="Sube imágenes o PDFs con las facturas que quieres convertir",
+        type=["jpg", "jpeg", "png", "heic", "pdf"],
+        accept_multiple_files=True,
+        help="Por favor sube los archivos con facturas individuales"
     )
 
-    # Ask the user for a question via `st.text_area`.
-    question = st.text_area(
-        "Now ask a question about the document!",
-        placeholder="Can you give me a short summary?",
-        disabled=not uploaded_file,
+    generate = st.button(
+        label="Generar 606",
+        disabled=not uploaded_files
     )
 
-    if uploaded_file and question:
+    responses_list = []
 
-        # Process the uploaded file and question.
-        document = uploaded_file.read().decode()
-        messages = [
-            {
-                "role": "user",
-                "content": f"Here's a document: {document} \n\n---\n\n {question}",
-            }
-        ]
+    if uploaded_files and generate:
+        for uploaded_file in uploaded_files:
+            file_type = uploaded_file.type
+            st.write(f"Procesando: {uploaded_file.name}")
+            if file_type.startswith("image"):
+                image = Image.open(uploaded_file)
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash-lite",
+                    contents=[image, prompt_image]
+                )
+                try:
+                    # Assuming the response is a JSON string
+                    json_response = json.loads(response.text)
+                    responses_list.append(json_response)
+                except json.JSONDecodeError:
+                    st.warning(f"Could not decode JSON from image response for {uploaded_file.name}")
+            elif file_type == "application/pdf":
+                pdf_bytes = uploaded_file.read()
+                pdf_content = types.FileData(data=pdf_bytes, mime_type="application/pdf")
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash-lite",
+                    contents=[pdf_content, prompt_pdf]
+                )
+                try:
+                    # Assuming the response is a JSON string
+                    json_response = json.loads(response.text)
+                    responses_list.append(json_response)
+                except json.JSONDecodeError:
+                    st.warning(f"Could not decode JSON from PDF response for {uploaded_file.name}")
+            else:
+                st.warning(f"Tipo de archivo no soportado: {uploaded_file.name}")
 
-        # Generate an answer using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            stream=True,
-        )
+        # Check if there are any responses to display
+        if responses_list:
+            st.table(responses_list)
+        else:
+            st.info("No valid JSON responses were generated to display in the table.")
 
-        # Stream the response to the app using `st.write_stream`.
-        st.write_stream(stream)
+if __name__ == "__main__":
+    main()
