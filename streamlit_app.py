@@ -5,7 +5,8 @@ from google import genai
 from google.genai import types
 from PIL import Image
 from pydantic import BaseModel
-from prompts import prompt_image, prompt_pdf
+from utils.prompts import prompt_image, prompt_pdf
+
 
 class ReceiptData(BaseModel):
     rnc: int
@@ -17,15 +18,74 @@ class ReceiptData(BaseModel):
     other_taxes: float
     tips: float
 
+
+# ---------- ASYNC LLM CALL ----------
+async def llm_response(client, file_data, prompt, response_schema, file_name):
+    """
+    Sends file_data and prompt to the LLM, parses the JSON response, and returns it.
+    Returns None if JSON decoding fails.
+    """
+    try:
+        response = await client.aio.models.generate_content(  # 👈 async call
+            model="gemini-2.0-flash-lite-001",
+            contents=[file_data, prompt],
+            config={
+                "response_mime_type": "application/json",
+                "response_schema": response_schema,
+            },
+        )
+        json_response = json.loads(response.text)
+        return json_response
+    except json.JSONDecodeError:
+        st.warning(f"Could not decode JSON from response for {file_name}")
+        return None
+    except Exception as e:
+        st.error(f"Error processing {file_name}: {e}")
+        return None
+
+
+# ---------- PROCESS FILES IN PARALLEL ----------
+async def process_files(client, uploaded_files, progress_bar):
+    tasks = []
+    for uploaded_file in uploaded_files:
+        file_type = uploaded_file.type
+
+        if file_type.startswith("image"):
+            image = Image.open(uploaded_file)
+            tasks.append(
+                llm_response(client, image, prompt_image, list[ReceiptData], uploaded_file.name)
+            )
+
+        elif file_type == "application/pdf":
+            pdf_bytes = uploaded_file.read()
+            pdf_content = types.FileData(data=pdf_bytes, mime_type="application/pdf")
+            tasks.append(
+                llm_response(client, pdf_content, prompt_pdf, list[ReceiptData], uploaded_file.name)
+            )
+
+        else:
+            st.warning(f"Tipo de archivo no soportado: {uploaded_file.name}")
+
+    results = []
+    total_files = len(tasks)
+
+    # As tasks finish, update progress
+    for idx, coro in enumerate(asyncio.as_completed(tasks), start=1):
+        result = await coro
+        results.append(result)
+        progress_bar.progress(idx / total_files, text=f"Procesando archivo {idx}/{total_files}")
+
+    return results
+
+
+# ---------- STREAMLIT APP ----------
 def main():
+    st.markdown("<h1 style='text-align: center;'>📄 606 automático</h1>", unsafe_allow_html=True)
 
-    # Show title and description.
-    st.title("📄 606 automático")
-
-    # Initialize the GenAI client.
+    # Initialize the GenAI client
     client = genai.Client()
 
-    # Load an image and generate content.
+    # Upload section
     uploaded_files = st.file_uploader(
         label="Sube imágenes o PDFs con las facturas que quieres convertir",
         type=["jpg", "jpeg", "png", "heic", "pdf"],
@@ -33,66 +93,22 @@ def main():
         help="Por favor sube los archivos con facturas individuales"
     )
 
-    generate = st.button(
-        label="Generar 606",
-        disabled=not uploaded_files
-    )
-
-    responses_list = []
+    generate = st.button(label="Generar 606", disabled=not uploaded_files)
 
     if uploaded_files and generate:
-
         progress_bar = st.progress(0, text="Procesando archivos...")
-        total_files = len(uploaded_files)
-        for idx, uploaded_file in enumerate(uploaded_files):
-            file_type = uploaded_file.type
-            progress_bar.progress(
-                idx / total_files,
-                text=f"Procesando: {uploaded_file.name} ({idx+1}/{total_files})"
-            )
-            if file_type.startswith("image"):
-                image = Image.open(uploaded_file)
-                response = client.models.generate_content(
-                    model="gemini-2.5-flash-lite",
-                    contents=[image, prompt_image],
-                    config={
-                        "response_mime_type": "application/json",
-                        "response_schema": list[ReceiptData],
-                    },
-                )
-                try:
-                    # Assuming the response is a JSON string
-                    json_response = json.loads(response.text)
-                    responses_list.append(json_response)
-                except json.JSONDecodeError:
-                    st.warning(f"Could not decode JSON from image response for {uploaded_file.name}")
-            elif file_type == "application/pdf":
-                pdf_bytes = uploaded_file.read()
-                pdf_content = types.FileData(data=pdf_bytes, mime_type="application/pdf")
-                response = client.models.generate_content(
-                    model="gemini-2.5-flash-lite",
-                    contents=[pdf_content, prompt_pdf],
-                    config={
-                        "response_mime_type": "application/json",
-                        "response_schema": list[ReceiptData],
-                    },
-                )
-                try:
-                    # Assuming the response is a JSON string
-                    json_response = json.loads(response.text)
-                    responses_list.append(json_response)
-                except json.JSONDecodeError:
-                    st.warning(f"Could not decode JSON from PDF response for {uploaded_file.name}")
-            else:
-                st.warning(f"Tipo de archivo no soportado: {uploaded_file.name}")
-        
+
+        # Run async pipeline
+        responses_list = asyncio.run(process_files(client, uploaded_files, progress_bar))
+
         progress_bar.progress(1.0, text="Procesamiento completado.")
 
-        # Check if there are any responses to display
-        if responses_list:
-            st.table(responses_list)
+        valid_responses = [r for r in responses_list if r and not isinstance(r, Exception)]
+        if valid_responses:
+            st.table(valid_responses)
         else:
             st.info("No valid JSON responses were generated to display in the table.")
+
 
 if __name__ == "__main__":
     main()
