@@ -26,13 +26,14 @@ async def llm_response(client, file_data, prompt, response_schema, file_name):
     Returns None if JSON decoding fails.
     """
     try:
-        response = await client.aio.models.generate_content(  # 👈 async call
+        response = await client.aio.models.generate_content(
             model="gemini-2.0-flash-lite-001",
-            contents=[file_data, prompt],
-            config={
-                "response_mime_type": "application/json",
-                "response_schema": response_schema,
-            },
+            contents=[file_data],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=response_schema,
+                system_instruction=prompt
+            ),
         )
         json_response = json.loads(response.text)
         return json_response
@@ -49,20 +50,21 @@ async def process_files(client, uploaded_files, progress_bar):
     tasks = []
     for uploaded_file in uploaded_files:
         file_type = uploaded_file.type
-
         if file_type.startswith("image"):
-            image = Image.open(uploaded_file)
-            tasks.append(
-                llm_response(client, image, prompt_image, list[ReceiptData], uploaded_file.name)
+            image_bytes = uploaded_file.read()
+            image_part = types.Part.from_bytes(
+                data=image_bytes, 
+                mime_type=uploaded_file.type
             )
-
+            tasks.append(
+                llm_response(client, image_part, prompt_image, list[ReceiptData], uploaded_file.name)
+            )
         elif file_type == "application/pdf":
             pdf_bytes = uploaded_file.read()
             pdf_content = types.FileData(data=pdf_bytes, mime_type="application/pdf")
             tasks.append(
                 llm_response(client, pdf_content, prompt_pdf, list[ReceiptData], uploaded_file.name)
             )
-
         else:
             st.warning(f"Tipo de archivo no soportado: {uploaded_file.name}")
 

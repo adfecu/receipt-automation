@@ -74,13 +74,9 @@ Example:
 If you extract:
 
 total: 1458.00
-
 itbis: 188.00
-
 isc: 50.00
-
 other_taxes: 10.00
-
 tips: 110.00
 
 And other fields: rnc, ncf, date
@@ -107,3 +103,14 @@ JSON
 """
 
 prompt_pdf = "Describe this pdf"
+
+# example_response = """{
+#   "date": "26/07/2025",
+#   "isc": 0,
+#   "itbis": 142.74,
+#   "ncf": "B0100099834",
+#   "other_taxes": 0,
+#   "rnc": 131563856,
+#   "subtotal": 872.28,
+#   "tips": 79.30
+# }"""
