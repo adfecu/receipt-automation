@@ -7,11 +7,11 @@ Task: From the provided image of a Dominican fiscal receipt, you will perform tw
 Step 1: Extracted Data Fields
 Accurately extract the following values directly from the receipt image.
 
-RNC (rnc):
+RNC (rnc_vendor):
 
-Label: Find the "RNC" label.
+Label: Find the vendor's "RNC" label.
 
-Rule: Extract the vendor's 9-digit RNC number.
+Rule: Extract the vendor's (top of receipt) 9-digit RNC number.
 
 NCF (ncf):
 
@@ -43,12 +43,6 @@ Label: Find the line item for Selective Consumption Tax, labeled "ISC" or "IMP. 
 
 Rule: Extract the corresponding tax amount as a number. If not present, you must use the value 0.
 
-Other Taxes (other_taxes):
-
-Label: Find the line item for other taxes, labeled "OTROS IMPUESTOS" or "OTRAS TASAS".
-
-Rule: Extract the corresponding tax amount as a number. If not present, you must use the value 0.
-
 Legal Tip (tips):
 
 Label: Find the line for the legal tip, labeled "% LEY", "LEY", or "PROPINA LEY".
@@ -56,7 +50,7 @@ Label: Find the line for the legal tip, labeled "% LEY", "LEY", or "PROPINA LEY"
 Rule: Extract the tip amount as a number. If not present, you must use the value 0.
 
 Step 2: Calculated Data Field
-This is a mandatory calculation step. The subtotal represents the base amount of goods/services before any taxes or tips are applied.
+This is a mandatory calculation step.
 
 Subtotal (subtotal):
 
@@ -76,10 +70,9 @@ If you extract:
 total: 1458.00
 itbis: 188.00
 isc: 50.00
-other_taxes: 10.00
 tips: 110.00
 
-And other fields: rnc, ncf, date
+And other fields: rnc_vendor, ncf, date
 
 You will calculate:
 
@@ -87,22 +80,19 @@ subtotal = 1458.00 - 188.00 = 1270.00
 
 Your final output must be this exact JSON structure:
 
-JSON
-
 {
-  "rnc": 130123456,
+  "rnc_vendor": 130123456,
   "ncf": "B0100055276",
   "date": "09/08/2025",
   "subtotal": 1270.00,
   "itbis": 188.00,
   "isc": 50.00,
-  "other_taxes": 10.00,
   "tips": 110.00
 }
 
 """
 
-prompt_pdf = "Describe this pdf"
+prompt_pdf = "Describe what's in this pdf."
 
 # example_response = """{
 #   "date": "26/07/2025",
@@ -110,7 +100,7 @@ prompt_pdf = "Describe this pdf"
 #   "itbis": 142.74,
 #   "ncf": "B0100099834",
 #   "other_taxes": 0,
-#   "rnc": 131563856,
+#   "rnc_vendor": 131563856,
 #   "subtotal": 872.28,
 #   "tips": 79.30
 # }"""

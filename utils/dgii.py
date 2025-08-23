@@ -26,8 +26,7 @@ def consulta_rnc(rnc: str):
         'sec-fetch-site': 'cross-site',
         'sec-fetch-user': '?1',
         'upgrade-insecure-requests': '1',
-        # 'user-agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36',
-        'user-agent': 'RNC-Lookup-Bot/1.0 (+http://606-automatico.streamlit.app)'
+        'user-agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36',
     }
     
     # The session object will automatically receive and store cookies
@@ -96,7 +95,7 @@ def parse_dgii_response(html):
 
 # Example usage:
 if __name__ == "__main__":
-    rnc_to_check = "101019922" # Example RNC for "CERVECERIA NACIONAL DOMINICANA"
+    rnc_to_check = "131563856" # Example RNC for "CERVECERIA NACIONAL DOMINICANA"
     try:
         import time
         start = time.time()
