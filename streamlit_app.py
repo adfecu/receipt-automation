@@ -6,7 +6,7 @@ from google.genai import types
 from pydantic import BaseModel
 from utils.prompts import prompt_image, prompt_pdf
 import pandas as pd
-from utils.dgii import consulta_rnc  # make sure this is the correct import
+from utils.dataframe_checks import highlight_invalid_rnc, highlight_invalid_ncf
 
 
 class ReceiptData(BaseModel):
@@ -18,29 +18,6 @@ class ReceiptData(BaseModel):
     isc: float
     # other_taxes: float
     tips: float
-
-
-# ---- Cache the DGII query ----
-@st.cache_data(show_spinner=False)
-def cached_consulta_rnc(rnc: int):
-    """Cached wrapper for consulta_rnc to avoid repeated API calls."""
-    try:
-        return consulta_rnc(rnc)
-    except Exception:
-        return None
-
-
-def highlight_invalid_rnc(val):
-    """Return red background if RNC is invalid (consulta_rnc returns None)."""
-    try:
-        if not val:  # empty or NaN
-            return "background-color: red; color: white;"
-        result = cached_consulta_rnc(int(val))
-        if not result:  # DGII didn’t return data
-            return "background-color: red; color: white;"
-    except Exception:
-        return "background-color: red; color: white;"
-    return ""
 
 
 # ---------- ASYNC LLM CALL ----------
@@ -141,8 +118,10 @@ def main():
         if flattened:
             df = pd.DataFrame(flattened)
 
-            # Apply style only to the rnc_vendor column
-            styled_df = df.style.map(highlight_invalid_rnc, subset=["rnc_vendor"])
+            # Apply style to rnc_vendor and ncf columns
+            styled_df = df.style\
+                .map(highlight_invalid_rnc, subset=["rnc_vendor"])\
+                .map(highlight_invalid_ncf, subset=["ncf"])
 
             st.dataframe(styled_df)
         else:

@@ -9,7 +9,7 @@ Accurately extract the following values directly from the receipt image.
 
 RNC (rnc_vendor):
 
-Label: Find the vendor's "RNC" label.
+Label: Find the vendor's "RNC" number (Not the buyer's). It may not have a label.
 
 Rule: Extract the vendor's (top of receipt) 9-digit RNC number.
 
