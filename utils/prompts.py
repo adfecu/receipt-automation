@@ -23,7 +23,7 @@ Date (date):
 
 Label: Find the "FECHA" label.
 
-Rule: Extract the date and convert it to the strict format DD/MM/YYYY. (Today's date is 09/08/2025).
+Rule: Extract the date and convert it to the strict format DD/MM/YYYY.
 
 Total Amount (total):
 
@@ -92,7 +92,7 @@ Your final output must be this exact JSON structure:
 
 """
 
-prompt_pdf = "Describe what's in this pdf."
+prompt_pdf = prompt_image  # Same prompt for PDF files
 
 # example_response = """{
 #   "date": "26/07/2025",
