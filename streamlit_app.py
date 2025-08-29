@@ -6,7 +6,7 @@ from google.genai import types
 from pydantic import BaseModel
 from utils.prompts import prompt_image, prompt_pdf
 import pandas as pd
-from utils.dataframe_checks import highlight_invalid_rnc, highlight_invalid_ncf
+from utils.dataframe_checks import highlight_invalid_date, highlight_invalid_rnc, highlight_invalid_ncf
 
 
 class ReceiptData(BaseModel):
@@ -121,7 +121,8 @@ def main():
             # Apply style to rnc_vendor and ncf columns
             styled_df = df.style\
                 .map(highlight_invalid_rnc, subset=["rnc_vendor"])\
-                .map(highlight_invalid_ncf, subset=["ncf"])
+                .map(highlight_invalid_ncf, subset=["ncf"])\
+                .map(highlight_invalid_date, subset=["date"])
 
             st.dataframe(styled_df)
         else:

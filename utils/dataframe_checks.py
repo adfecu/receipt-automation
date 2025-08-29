@@ -2,6 +2,16 @@ import re
 import streamlit as st
 
 @st.cache_data(show_spinner=False)
+def highlight_invalid_date(val):
+    """Return red background if date is not in DD/MM/YYYY format."""
+    if not isinstance(val, str):
+        return "background-color: red; color: white;"
+    # Match DD/MM/YYYY format
+    if not re.fullmatch(r"(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{4}", val):
+        return "background-color: red; color: white;"
+    return ""
+
+@st.cache_data(show_spinner=False)
 def highlight_invalid_rnc(val):
     """Return red background if RNC is invalid (consulta_rnc returns None)."""
     if not val:
