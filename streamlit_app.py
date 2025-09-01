@@ -111,10 +111,13 @@ def main():
         progress_bar.progress(1.0, text="Procesamiento completado.")
 
         valid_responses = [r for r in responses_list if r and not isinstance(r, Exception)]
-        # Flatten the list of lists (if each response is a list of dicts)
+        # Flatten the list of lists (if each response is a list of dicts) and add file_name
         flattened = []
-        for item in valid_responses:
-            flattened.extend(item)
+        for uploaded_file, response in zip(uploaded_files, valid_responses):
+            if response:
+                for row in response:
+                    row["file_name"] = uploaded_file.name
+                    flattened.append(row)
         if flattened:
             df = pd.DataFrame(flattened)
 
