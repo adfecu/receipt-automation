@@ -28,13 +28,14 @@ async def llm_response(client, file_data, prompt, response_schema, file_name):
     """
     try:
         response = await client.aio.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model="gemini-2.5-flash",
             contents=[file_data],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=response_schema,
                 system_instruction=prompt,
-                temperature=0
+                temperature=0,
+                thinking_config=types.ThinkingConfig(thinking_budget=0)
             ),
         )
         json_response = json.loads(response.text)
