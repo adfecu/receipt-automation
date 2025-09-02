@@ -24,6 +24,7 @@ def display_results(uploaded_files, responses_list):
             .map(highlight_invalid_date, subset=["date"])
         st.dataframe(
             styled_df,
+            hide_index=True,
             column_config={
                 "subtotal": st.column_config.NumberColumn("Subtotal", format="accounting"),
                 "itbis": st.column_config.NumberColumn("ITBIS", format="accounting"),

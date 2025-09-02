@@ -45,21 +45,16 @@ async def process_files(client, uploaded_files, progress_bar):
     file_task_pairs = []
     for uploaded_file in uploaded_files:
         file_type = uploaded_file.type
-        if file_type.startswith("image"):
-            image_bytes = uploaded_file.read()
-            image_part = types.Part.from_bytes(
-                data=image_bytes,
-                mime_type=uploaded_file.type
+        file_bytes = uploaded_file.read()
+
+        if file_type.startswith("image") or file_type == "application/pdf":
+            part = types.Part.from_bytes(
+                data=file_bytes,
+                mime_type=file_type,
             )
-            task = llm_response(client, image_part, prompt_image, list[ReceiptData], uploaded_file.name)
-            file_task_pairs.append((uploaded_file, task))
-        elif file_type == "application/pdf":
-            pdf_bytes = uploaded_file.read()
-            pdf_content = types.FileData(
-                data=pdf_bytes,
-                mime_type="application/pdf"
-            )
-            task = llm_response(client, pdf_content, prompt_pdf, list[ReceiptData], uploaded_file.name)
+
+            prompt = prompt_image if file_type.startswith("image") else prompt_pdf
+            task = llm_response(client, part, prompt, list[ReceiptData], uploaded_file.name)
             file_task_pairs.append((uploaded_file, task))
         else:
             st.warning(f"Tipo de archivo no soportado: {uploaded_file.name}")
@@ -70,8 +65,10 @@ async def process_files(client, uploaded_files, progress_bar):
     # Run all tasks concurrently and preserve order
     coros = [task for (_, task) in file_task_pairs]
     completed = await asyncio.gather(*coros)
+
     for idx, (uploaded_file, _) in enumerate(file_task_pairs):
         progress_bar.progress((idx + 1) / total_files, text=f"Procesando archivo {idx + 1}/{total_files}")
         results[idx] = completed[idx]
 
     return results
+
