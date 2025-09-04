@@ -4,6 +4,10 @@ from google import genai
 from utils.result import display_results
 from utils.llm import process_files
 
+def login_screen():
+    st.header("This app is private.")
+    st.subheader("Please log in.")
+    st.button("Log in with Google", on_click=st.login)
 
 # ---------- STREAMLIT APP ----------
 def main():
