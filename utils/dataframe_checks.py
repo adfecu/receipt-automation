@@ -1,5 +1,14 @@
 import re
 import streamlit as st
+import pandas as pd
+
+# Load RNCs from CSV (cache for performance)
+@st.cache_data(show_spinner=False)
+def load_rnc_set():
+    df = pd.read_csv('RNC_Contribuyentes_Actualizado_30_Ago_2025.csv', dtype=str)
+    rnc_col = df.columns[0]
+    return set(df[rnc_col].str.replace('-', '').dropna())
+
 
 @st.cache_data(show_spinner=False)
 def highlight_invalid_date(val):
@@ -11,13 +20,19 @@ def highlight_invalid_date(val):
         return "background-color: red; color: white;"
     return ""
 
+
 @st.cache_data(show_spinner=False)
 def highlight_invalid_rnc(val):
     """Return red background if RNC is invalid (consulta_rnc returns None)."""
     if not val:
         return "background-color: red; color: white;"
+    
     digits = str(val).replace('-', '')
-    if not digits.isdigit() or len(digits) not in (9, 11):
+    # if not digits.isdigit() or len(digits) not in (9, 11):
+    #     return "background-color: red; color: white;"
+    
+    rnc_set = load_rnc_set()
+    if digits not in rnc_set:
         return "background-color: red; color: white;"
     return ""
 
