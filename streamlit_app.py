@@ -4,6 +4,14 @@ from google import genai
 from utils.result import display_results
 from utils.llm import process_files
 
+st.set_page_config(
+    page_title="606 automático",
+    page_icon="📄",
+    menu_items={
+        'About': "606 automático es una app que te ayuda a convertir tus facturas al formato de envío 606 con tan solo subir fotos o PDFs de tus facturas."
+    }
+)
+
 def login_screen():
     st.header("This app is private.")
     st.subheader("Please log in.")
@@ -14,7 +22,7 @@ def main():
     st.markdown("<h1 style='text-align: center;'>📄 606 automático</h1>", unsafe_allow_html=True)
 
     # Initialize the GenAI client
-    client = genai.Client()
+    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
     # Upload section
     uploaded_files = st.file_uploader(
