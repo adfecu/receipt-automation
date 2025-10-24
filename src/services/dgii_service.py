@@ -1,3 +1,6 @@
+"""
+DGII (Dominican Tax Authority) API service for RNC validation.
+"""
 import requests
 from bs4 import BeautifulSoup
 import warnings
@@ -8,11 +11,23 @@ warnings.simplefilter('ignore', InsecureRequestWarning)
 
 URL = "https://dgii.gov.do/app/WebApps/ConsultasWeb2/ConsultasWeb/consultas/rnc.aspx"
 
+
 def consulta_rnc(rnc: str):
+    """
+    Query the DGII website for RNC information.
+    
+    Args:
+        rnc: The RNC number to query
+        
+    Returns:
+        dict: Dictionary containing the RNC information, or empty dict if not found
+        
+    Raises:
+        RuntimeError: If the page cannot be accessed or parsed
+    """
     session = requests.Session()
 
     # Step 1: GET the page with browser-like headers to bypass bot detection
-    # These headers are translated from your cURL command
     browser_headers = {
         'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'accept-language': 'en-US,en;q=0.9',
@@ -44,8 +59,6 @@ def consulta_rnc(rnc: str):
 
     if not viewstate:
         # If viewstate is still not found, the page structure might have changed
-        # or the anti-bot measures have become more sophisticated.
-        # print(resp.text) # Uncomment to debug the received HTML
         raise RuntimeError("Could not find __VIEWSTATE. The page might be blocking the request.")
 
     # Step 2: Build the payload for the POST request (AJAX call)
@@ -63,12 +76,12 @@ def consulta_rnc(rnc: str):
         "__ASYNCPOST": "true",
     }
     
-    # These headers are specific for the AJAX POST request
+    # Headers specific for the AJAX POST request
     ajax_headers = {
         "X-MicrosoftAjax": "Delta=true",
         "X-Requested-With": "XMLHttpRequest",
-        "User-Agent": browser_headers['user-agent'], # Maintain the same user-agent
-        "Referer": URL, # The referer is now the page itself
+        "User-Agent": browser_headers['user-agent'],
+        "Referer": URL,
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     }
 
@@ -78,6 +91,15 @@ def consulta_rnc(rnc: str):
 
 
 def parse_dgii_response(html):
+    """
+    Parse the DGII response HTML and extract RNC information.
+    
+    Args:
+        html: HTML response from DGII
+        
+    Returns:
+        dict: Dictionary with parsed RNC information
+    """
     soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table", {"id": "cphMain_dvDatosContribuyentes"})
     
@@ -93,9 +115,9 @@ def parse_dgii_response(html):
     return data
 
 
-# Example usage:
+# Example usage for testing
 if __name__ == "__main__":
-    rnc_to_check = "131563856" # Example RNC for "CERVECERIA NACIONAL DOMINICANA"
+    rnc_to_check = "131563856"  # Example RNC for "CERVECERIA NACIONAL DOMINICANA"
     try:
         import time
         start = time.time()
@@ -103,10 +125,9 @@ if __name__ == "__main__":
         elapsed = time.time() - start
         print(f"consulta_rnc took {elapsed:.2f} seconds.")
         if data:
-            # for key, value in data.items():
-            #     print(f"{key}: {value}")
             print(data)
         else:
             print(f"No data found for RNC: {rnc_to_check}")
     except RuntimeError as e:
         print(f"An error occurred: {e}")
+

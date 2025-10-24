@@ -1,8 +1,9 @@
 import asyncio
 import streamlit as st
 from google import genai
-from utils.result import display_results
-from utils.llm import process_files
+from src.ui.results_display import display_results
+from src.services.llm_service import process_files
+from config import get_gemini_api_key, SUPPORTED_FILE_TYPES
 
 st.set_page_config(
     page_title="606 automático",
@@ -17,17 +18,22 @@ def login_screen():
     st.subheader("Please log in.")
     st.button("Log in with Google", on_click=st.login)
 
+@st.cache_resource
+def get_genai_client():
+    """Initialize and cache the GenAI client."""
+    return genai.Client(api_key=get_gemini_api_key())
+
 # ---------- STREAMLIT APP ----------
 def main():
     st.markdown("<h1 style='text-align: center;'>📄 606 automático</h1>", unsafe_allow_html=True)
 
     # Initialize the GenAI client
-    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+    client = get_genai_client()
 
     # Upload section
     uploaded_files = st.file_uploader(
         label="Sube imágenes o PDFs con las facturas que quieres convertir",
-        type=["jpg", "jpeg", "pdf"],
+        type=SUPPORTED_FILE_TYPES,
         accept_multiple_files=True,
         help="Por favor sube los archivos con facturas individuales"
     )

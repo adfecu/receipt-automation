@@ -1,3 +1,7 @@
+"""
+Prompt templates for LLM-based data extraction from receipts.
+"""
+
 prompt_image = """
 
 Role: You are an AI assistant specializing in highly accurate data extraction and processing from financial documents. Your primary function is to read Dominican fiscal receipts (Comprobantes Fiscales) and return structured data with 100% accuracy.
@@ -92,15 +96,6 @@ Your final output must be this exact JSON structure:
 
 """
 
-prompt_pdf = prompt_image  # Same prompt for PDF files
+# Same prompt for PDF files
+prompt_pdf = prompt_image
 
-# example_response = """{
-#   "date": "26/07/2025",
-#   "isc": 0,
-#   "itbis": 142.74,
-#   "ncf": "B0100099834",
-#   "other_taxes": 0,
-#   "rnc_vendor": 131563856,
-#   "subtotal": 872.28,
-#   "tips": 79.30
-# }"""
