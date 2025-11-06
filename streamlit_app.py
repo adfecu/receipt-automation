@@ -35,21 +35,32 @@ def main():
         label="Sube imágenes o PDFs con las facturas que quieres convertir",
         type=SUPPORTED_FILE_TYPES,
         accept_multiple_files=True,
-        help="Por favor sube los archivos con facturas individuales"
+        help="Por favor sube los archivos con facturas individuales. Máximo 10 archivos por vez."
     )
 
-    generate = st.button(label="Generar 606", disabled=not uploaded_files)
+    # Validate file count limit (10 files max)
+    MAX_FILES = 10
+    file_count_exceeded = uploaded_files and len(uploaded_files) > MAX_FILES
+    
+    if file_count_exceeded:
+        st.error(f"⚠️ Has subido {len(uploaded_files)} archivos. El límite es de {MAX_FILES} archivos a la vez debido a las limitaciones de la aplicación.")
+        st.info("Por favor, elimina algunos archivos y vuelve a intentar.")
 
-    if uploaded_files and generate:
+    generate = st.button(label="Generar 606", disabled=not uploaded_files or file_count_exceeded)
+
+    if uploaded_files and generate and not file_count_exceeded:
+        # Limit to first 10 files if somehow more are selected
+        files_to_process = uploaded_files[:MAX_FILES] if len(uploaded_files) > MAX_FILES else uploaded_files
+        
         progress_bar = st.progress(0, text="Procesando archivos...")
 
         # Run async pipeline
-        responses_list = asyncio.run(process_files(client, uploaded_files, progress_bar))
+        responses_list = asyncio.run(process_files(client, files_to_process, progress_bar))
 
         progress_bar.progress(1.0, text="Procesamiento completado.")
         
         # Display the results
-        display_results(uploaded_files, responses_list)
+        display_results(files_to_process, responses_list)
 
 if __name__ == "__main__":
     main()
